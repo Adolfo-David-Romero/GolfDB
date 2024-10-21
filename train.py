@@ -2,12 +2,16 @@ from dataloader import GolfDB, Normalize, ToTensor
 from model import EventDetector
 from util import *
 import torch
+import numpy as np
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import os
 
 
 if __name__ == '__main__':
+
+    #Check if CUDA is available
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # training configuration
     split = 1
@@ -26,10 +30,10 @@ if __name__ == '__main__':
                           dropout=False)
     freeze_layers(k, model)
     model.train()
-    model.cuda()
+    model.to(device)  # send model to the correct device (GPU or CPU)
 
-    dataset = GolfDB(data_file='data/train_split_{}.pkl'.format(split),
-                     vid_dir='data/videos_160/',
+    dataset = GolfDB(data_file='/Users/davidromero/Documents/Capstone/Elaboration F24/ML/golfdb-master/train_split_{}.pkl'.format(split),
+                     vid_dir='/Users/davidromero/Documents/Capstone/Elaboration F24/ML/golfdb-master/data/videos_160/',
                      seq_length=seq_length,
                      transform=transforms.Compose([ToTensor(),
                                                    Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
@@ -43,7 +47,7 @@ if __name__ == '__main__':
 
     # the 8 golf swing events are classes 0 through 7, no-event is class 8
     # the ratio of events to no-events is approximately 1:35 so weight classes accordingly:
-    weights = torch.FloatTensor([1/8, 1/8, 1/8, 1/8, 1/8, 1/8, 1/8, 1/8, 1/35]).cuda()
+    weights = torch.FloatTensor([1/8, 1/8, 1/8, 1/8, 1/8, 1/8, 1/8, 1/8, 1/35]).to(device)
     criterion = torch.nn.CrossEntropyLoss(weight=weights)
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001)
 
@@ -55,7 +59,7 @@ if __name__ == '__main__':
     i = 0
     while i < iterations:
         for sample in data_loader:
-            images, labels = sample['images'].cuda(), sample['labels'].cuda()
+            images, labels = sample['images'].to(device), sample['labels'].to(device)
             logits = model(images)
             labels = labels.view(bs*seq_length)
             loss = criterion(logits, labels)
@@ -67,7 +71,7 @@ if __name__ == '__main__':
             i += 1
             if i % it_save == 0:
                 torch.save({'optimizer_state_dict': optimizer.state_dict(),
-                            'model_state_dict': model.state_dict()}, 'models/swingnet_{}.pth.tar'.format(i))
+                            'model_state_dict': model.state_dict()}, '/Users/davidromero/Documents/Capstone/Elaboration F24/ML/golfdb-master/models/swingnet_{}.pth.tar'.format(i))
             if i == iterations:
                 break
 

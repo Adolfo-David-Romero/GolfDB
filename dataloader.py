@@ -67,6 +67,9 @@ class ToTensor(object):
     """Convert ndarrays in sample to Tensors."""
     def __call__(self, sample):
         images, labels = sample['images'], sample['labels']
+        # Ensure that images is a numpy array
+        if not isinstance(images, np.ndarray):
+            images = np.asarray(images)
         images = images.transpose((0, 3, 1, 2))
         return {'images': torch.from_numpy(images).float().div(255.),
                 'labels': torch.from_numpy(labels).long()}
@@ -87,8 +90,8 @@ if __name__ == '__main__':
 
     norm = Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])  # ImageNet mean and std (RGB)
 
-    dataset = GolfDB(data_file='data/train_split_1.pkl',
-                     vid_dir='data/videos_160/',
+    dataset = GolfDB(data_file='/Users/davidromero/Documents/Capstone/Elaboration F24/ML/golfdb-master/train_split_1.pkl',
+                     vid_dir='/Users/davidromero/Documents/Capstone/Elaboration F24/ML/golfdb-master/data/videos_160/',
                      seq_length=64,
                      transform=transforms.Compose([ToTensor(), norm]),
                      train=False)

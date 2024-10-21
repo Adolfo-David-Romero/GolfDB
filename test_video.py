@@ -7,6 +7,7 @@ from eval import ToTensor, Normalize
 from model import EventDetector
 import numpy as np
 import torch.nn.functional as F
+from MobileNetV2 import MobileNetV2, mobilenet_v2
 
 event_names = {
     0: 'Address',
@@ -73,19 +74,21 @@ if __name__ == '__main__':
     dl = DataLoader(ds, batch_size=1, shuffle=False, drop_last=False)
 
     model = EventDetector(pretrain=True,
-                          width_mult=1.,
-                          lstm_layers=1,
-                          lstm_hidden=256,
-                          bidirectional=True,
-                          dropout=False)
+                      width_mult=1.,
+                      lstm_layers=1,
+                      lstm_hidden=256,
+                      bidirectional=True,
+                      dropout=False)
 
     try:
-        save_dict = torch.load('models/swingnet_1800.pth.tar')
-    except:
-        print("Model weights not found. Download model weights and place in 'models' folder. See README for instructions")
+        save_dict = torch.load('/Users/davidromero/Documents/Capstone/Elaboration F24/ML/golfdb-master/models/swingnet_1800.pth.tar', map_location='cpu')
+    except FileNotFoundError:
+        print("Model weights not found. Make sure 'swingnet_1800.pth.tar' is in the 'models' folder.")
+        exit()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Using device:', device)
+
     model.load_state_dict(save_dict['model_state_dict'])
     model.to(device)
     model.eval()
@@ -93,7 +96,8 @@ if __name__ == '__main__':
 
     print('Testing...')
     for sample in dl:
-        images = sample['images']
+        
+        images = sample['images'].to(device)
         # full samples do not fit into GPU memory so evaluate sample in 'seq_length' batches
         batch = 0
         while batch * seq_length < images.shape[1]:
@@ -101,7 +105,8 @@ if __name__ == '__main__':
                 image_batch = images[:, batch * seq_length:, :, :, :]
             else:
                 image_batch = images[:, batch * seq_length:(batch + 1) * seq_length, :, :, :]
-            logits = model(image_batch.cuda())
+            image_batch = image_batch.to(device)  # Ensure image batch is sent to the device
+            logits = model(image_batch)
             if batch == 0:
                 probs = F.softmax(logits.data, dim=1).cpu().numpy()
             else:

@@ -1,7 +1,7 @@
 from scipy.io import loadmat
 import pandas as pd
 
-x = loadmat('golfDB.mat')
+x = loadmat('/Users/davidromero/Documents/Capstone/Elaboration F24/ML/golfdb-master/data/golfDB.mat')
 l = list(x['golfDB'][0])
 d = dict()
 for idx, k in enumerate(l):
